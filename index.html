@@ -1,0 +1,1162 @@
+// Enhanced navigation handling
+        function handleNavigation() {
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    
+                    if (targetId === 'chat' && !currentUser) {
+                        alert('Please sign in to access the chat feature.');
+                        return;
+                    }
+                    
+                    showSection(targetId);
+                });
+            });
+        }
+
+        // Admin functions (only available to admin users)
+        function adminFunctions() {
+            if (!isAdmin) return;
+            
+            // Admin can manage users, view all chats, etc.
+            console.log('Admin functions available');
+            
+            // Add admin-specific features here
+            // Example: User management, system monitoring, etc.
+        }
+
+        // User permission check
+        function checkPermissions(action) {
+            if (!currentUser) return false;
+            
+            switch(action) {
+                case 'chat':
+                    return true; // All authenticated users can chat
+                case 'admin':
+                    return isAdmin;
+                case 'moderateChat':
+                    return isAdmin;
+                default:
+                    return false;
+            }
+        }
+
+        // Enhanced error handling
+        function handleError(error, context) {
+            console.error(`Error in ${context}:`, error);
+            
+            if (context === 'signin') {
+                const signInBtn = document.querySelector('.sign-in-btn');
+                signInBtn.innerHTML = '<i class="fab fa-google"></i> Sign in with Google';
+                signInBtn.disabled = false;
+            }
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+            handleNavigation();
+            
+            // Initialize main message input
+            const mainMessageInput = document.getElementById('main-message-input');
+            if (mainMessageInput) {
+                mainMessageInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMainMessage();
+                    }
+                });
+            }
+            
+            // Add loading animations
+            const hero = document.querySelector('.hero-content');
+            if (hero) {
+                hero.style.opacity = '0';
+                hero.style.transform = 'translateY(50px)';
+                hero.style.transition = 'opacity 1s ease, transform 1s ease';
+                
+                setTimeout(() => {
+                    hero.style.opacity = '1';
+                    hero.style.transform = 'translateY(0)';
+                }, 500);
+            }
+        });<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EnergyTrade - Blockchain Energy Trading Platform</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            scroll-behavior: smooth;
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(0, 47, 108, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: 1rem 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+        }
+
+        .nav-links a:hover {
+            color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .sign-in-btn, .sign-out-btn {
+            background: #00d4ff;
+            color: #002f6c;
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .sign-in-btn:hover, .sign-out-btn:hover {
+            background: #0099cc;
+            transform: translateY(-2px);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: white;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #00d4ff;
+        }
+
+        /* Hero Section */
+        #home {
+            background: linear-gradient(135deg, #002f6c 0%, #004d9f 50%, #0066cc 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #home::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            text-align: center;
+            color: white;
+            z-index: 1;
+            position: relative;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #00d4ff, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .cta-button {
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 1rem;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.4);
+        }
+
+        /* Section Styles */
+        .section {
+            min-height: 100vh;
+            padding: 6rem 2rem 4rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: #002f6c;
+        }
+
+        /* Introduction Section */
+        #introduction {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .intro-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .intro-text {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            color: #555;
+        }
+
+        .intro-features {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .feature-item {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 47, 108, 0.1);
+            border-left: 4px solid #00d4ff;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-item:hover {
+            transform: translateX(10px);
+        }
+
+        .feature-icon {
+            color: #00d4ff;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Services Section */
+        #services {
+            background: white;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .service-card {
+            background: linear-gradient(135deg, #002f6c, #004d9f);
+            color: white;
+            padding: 2rem;
+            border-radius: 20px;
+            text-align: center;
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+            opacity: 0;
+        }
+
+        .service-card:hover::before {
+            opacity: 1;
+            top: -100%;
+            left: -100%;
+        }
+
+        .service-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .service-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #00d4ff;
+        }
+
+        /* Chat Interface Styles */
+        #chat {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .chat-interface {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .chat-header-section {
+            background: linear-gradient(135deg, #002f6c, #004d9f);
+            color: white;
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .chat-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid #00d4ff;
+        }
+
+        .chat-user-details div {
+            margin-bottom: 0.3rem;
+        }
+
+        .user-role-badge {
+            background: #00d4ff;
+            color: #002f6c;
+            padding: 0.2rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .chat-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4caf50;
+        }
+
+        .status-indicator.online {
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .chat-messages-container {
+            height: 500px;
+            overflow-y: auto;
+            padding: 2rem;
+            background: #f8f9fa;
+        }
+
+        .welcome-message {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .system-message {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            display: inline-block;
+            font-weight: 500;
+        }
+
+        .system-message i {
+            margin-right: 0.5rem;
+        }
+
+        .chat-message {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .chat-message.user-message {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 1rem 1.5rem;
+            border-radius: 20px;
+            position: relative;
+        }
+
+        .chat-message.user-message .message-content {
+            background: #00d4ff;
+            color: white;
+        }
+
+        .chat-message.other-message .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+
+        .message-sender {
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+            opacity: 0.8;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            margin-top: 0.3rem;
+        }
+
+        .chat-input-container {
+            background: white;
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .chat-input-wrapper input {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            outline: none;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-input-wrapper input:focus {
+            border-color: #00d4ff;
+        }
+
+        .send-btn {
+            background: #00d4ff;
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-btn:hover {
+            background: #0099cc;
+            transform: scale(1.1);
+        }
+
+        /* Footer */
+        footer {
+            background: #002f6c;
+            color: white;
+            padding: 3rem 0 1rem;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h3 {
+            color: #00d4ff;
+            margin-bottom: 1rem;
+        }
+
+        .footer-section p, .footer-section a {
+            color: #ccc;
+            text-decoration: none;
+            line-height: 1.6;
+        }
+
+        .footer-section a:hover {
+            color: #00d4ff;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .social-links a {
+            color: #ccc;
+            font-size: 1.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .social-links a:hover {
+            color: #00d4ff;
+        }
+
+        .copyright {
+            border-top: 1px solid #004d9f;
+            padding-top: 1rem;
+            margin-top: 2rem;
+            color: #ccc;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .intro-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .chat-box {
+                width: 300px;
+            }
+
+            .section {
+                padding: 4rem 1rem 2rem;
+            }
+        }
+
+        /* Hidden class for authentication states */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Role selection */
+        .role-selection {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: 2rem auto;
+            text-align: center;
+        }
+
+        .role-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .role-btn {
+            flex: 1;
+            background: #002f6c;
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .role-btn:hover, .role-btn.active {
+            background: #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#home" class="logo">
+                <i class="fas fa-bolt"></i> EnergyTrade
+            </a>
+            
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#chat" id="chat-nav-link" class="hidden">Chat</a></li>
+            </ul>
+
+            <div class="auth-buttons">
+                <!-- Before authentication -->
+                <div id="auth-signed-out" class="auth-state">
+                    <button class="sign-in-btn" onclick="signIn()">
+                        <i class="fab fa-google"></i> Sign in with Google
+                    </button>
+                </div>
+
+                <!-- After authentication -->
+                <div id="auth-signed-in" class="auth-state hidden">
+                    <div class="user-info">
+                        <img id="user-avatar" class="user-avatar" src="" alt="User Avatar">
+                        <div>
+                            <div id="user-name" style="font-size: 0.9rem;"></div>
+                            <div id="user-email" style="font-size: 0.8rem; opacity: 0.8;"></div>
+                        </div>
+                        <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="section">
+        <div class="hero-content">
+            <h1 class="hero-title">Energy Trading Platform</h1>
+            <p class="hero-subtitle">
+                Revolutionary blockchain-powered energy trading platform connecting buyers and sellers 
+                in a secure, transparent, and efficient marketplace
+            </p>
+            <a href="#introduction" class="cta-button">
+                Discover How It Works
+            </a>
+        </div>
+    </section>
+
+    <!-- Introduction Section -->
+    <section id="introduction" class="section">
+        <div class="container">
+            <h2 class="section-title">Welcome to the Future of Energy Trading</h2>
+            <div class="intro-content">
+                <div class="intro-text">
+                    <p>
+                        Our platform leverages cutting-edge blockchain technology to revolutionize 
+                        energy trading. We provide a secure, transparent, and efficient marketplace 
+                        where energy producers and consumers can trade directly, reducing costs and 
+                        increasing sustainability.
+                    </p>
+                    <p>
+                        Built on a private blockchain network, our platform ensures real-time 
+                        calculations, secure transactions, and complete transparency in all energy 
+                        trading activities.
+                    </p>
+                </div>
+                <div class="intro-features">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3>Blockchain Security</h3>
+                        <p>Advanced cryptographic security ensures all transactions are immutable and transparent.</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-lightning-bolt"></i>
+                        </div>
+                        <h3>Real-time Trading</h3>
+                        <p>Instant energy trading with real-time price calculations and settlement.</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-leaf"></i>
+                        </div>
+                        <h3>Sustainable Energy</h3>
+                        <p>Promoting renewable energy sources and sustainable trading practices.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="section">
+        <div class="container">
+            <h2 class="section-title">Our Services</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <h3>Energy Trading</h3>
+                    <p>Direct peer-to-peer energy trading platform with blockchain verification and smart contract automation.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Market Analytics</h3>
+                    <p>Advanced analytics and reporting tools to help you make informed trading decisions.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Chat Section -->
+    <section id="chat" class="section" style="display: none;">
+        <div class="container">
+            <h2 class="section-title">Energy Trading Chat</h2>
+            
+            <!-- Chat Interface -->
+            <div class="chat-interface">
+                <div class="chat-header-section">
+                    <div class="chat-user-info">
+                        <img id="chat-user-avatar" class="chat-avatar" src="" alt="User">
+                        <div class="chat-user-details">
+                            <div id="chat-user-name"></div>
+                            <div id="chat-user-email"></div>
+                            <div id="chat-user-role" class="user-role-badge"></div>
+                        </div>
+                    </div>
+                    <div class="chat-status">
+                        <span class="status-indicator online"></span>
+                        <span>Online</span>
+                    </div>
+                </div>
+                
+                <div class="chat-messages-container" id="chat-messages-main">
+                    <div class="welcome-message">
+                        <div class="system-message">
+                            <i class="fas fa-bolt"></i>
+                            Welcome to EnergyTrade Chat! Connect with other traders and get support.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="main-message-input" placeholder="Type your message..." 
+                               onkeypress="if(event.key==='Enter') sendMainMessage()">
+                        <button onclick="sendMainMessage()" class="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>EnergyTrade</h3>
+                <p>Revolutionizing energy trading through blockchain technology. Join the future of sustainable energy marketplace.</p>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                    <a href="#"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <p><a href="#home">Home</a></p>
+                <p><a href="#introduction">Introduction</a></p>
+                <p><a href="#services">Services</a></p>
+                <p><a href="#">Privacy Policy</a></p>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Contact Info</h3>
+                <p><i class="fas fa-envelope"></i> info@energytrade.com</p>
+                <p><i class="fas fa-phone"></i> +1 (555) 123-4567</p>
+                <p><i class="fas fa-map-marker-alt"></i> 123 Energy St, Tech City, TC 12345</p>
+            </div>
+        </div>
+        
+        <div class="copyright">
+            <p>&copy; 2025 EnergyTrade. All rights reserved. Powered by blockchain technology.</p>
+        </div>
+    </footer>
+
+    <script>
+        // User state management
+        let currentUser = null;
+        let userRole = null; // Will be set by admin, not user selection
+        let isAdmin = false; // Admin flag
+        let chatMessages = [];
+
+        // Initialize the application
+        function initApp() {
+            // Check if user is already signed in (simulate persistence)
+            const savedUser = localStorage.getItem('energytrade_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                userRole = localStorage.getItem('energytrade_role') || 'user'; // Default to 'user'
+                isAdmin = localStorage.getItem('energytrade_admin') === 'true';
+                updateAuthUI();
+                showChatNavigation();
+            }
+        }
+
+        // Google Sign-In simulation
+        function signIn() {
+            const signInBtn = document.querySelector('.sign-in-btn');
+            const originalText = signInBtn.innerHTML;
+            signInBtn.innerHTML = '<span class="loading"></span> Signing in...';
+            signInBtn.disabled = true;
+
+            setTimeout(() => {
+                // Mock user data - in real implementation, determine admin status from backend
+                const isAdminUser = Math.random() > 0.8; // 20% chance for demo purposes
+                
+                currentUser = {
+                    id: 'user_' + Math.random().toString(36).substr(2, 9),
+                    name: 'John Doe',
+                    email: 'john.doe@example.com',
+                    picture: 'https://via.placeholder.com/60x60?text=JD',
+                    signInTime: new Date().toISOString()
+                };
+
+                // Set user role and admin status (in real app, this comes from backend)
+                userRole = isAdminUser ? 'admin' : 'user';
+                isAdmin = isAdminUser;
+
+                // Save to localStorage
+                localStorage.setItem('energytrade_user', JSON.stringify(currentUser));
+                localStorage.setItem('energytrade_role', userRole);
+                localStorage.setItem('energytrade_admin', isAdmin.toString());
+                
+                updateAuthUI();
+                showChatNavigation();
+                
+                signInBtn.innerHTML = originalText;
+                signInBtn.disabled = false;
+            }, 2000);
+        }
+
+        // Sign out function
+        function signOut() {
+            currentUser = null;
+            userRole = null;
+            isAdmin = false;
+            localStorage.removeItem('energytrade_user');
+            localStorage.removeItem('energytrade_role');
+            localStorage.removeItem('energytrade_admin');
+            updateAuthUI();
+            hideChatNavigation();
+            hideChatSection();
+            chatMessages = [];
+        }
+
+        // Update authentication UI
+        function updateAuthUI() {
+            const signedOut = document.getElementById('auth-signed-out');
+            const signedIn = document.getElementById('auth-signed-in');
+            const userAvatar = document.getElementById('user-avatar');
+            const userName = document.getElementById('user-name');
+            const userEmail = document.getElementById('user-email');
+
+            if (currentUser) {
+                signedOut.classList.add('hidden');
+                signedIn.classList.remove('hidden');
+                userAvatar.src = currentUser.picture;
+                userName.textContent = currentUser.name;
+                userEmail.textContent = currentUser.email;
+                
+                // Update chat interface
+                updateChatUserInfo();
+            } else {
+                signedOut.classList.remove('hidden');
+                signedIn.classList.add('hidden');
+            }
+        }
+
+        // Show/hide chat navigation
+        function showChatNavigation() {
+            if (currentUser) {
+                document.getElementById('chat-nav-link').classList.remove('hidden');
+            }
+        }
+
+        function hideChatNavigation() {
+            document.getElementById('chat-nav-link').classList.add('hidden');
+        }
+
+        // Show/hide chat section
+        function showChatSection() {
+            document.getElementById('chat').style.display = 'block';
+            // Hide other sections
+            document.getElementById('home').style.display = 'none';
+            document.getElementById('introduction').style.display = 'none';
+            document.getElementById('services').style.display = 'none';
+        }
+
+        function hideChatSection() {
+            document.getElementById('chat').style.display = 'none';
+        }
+
+        function showSection(sectionId) {
+            // Hide all sections
+            ['home', 'introduction', 'services', 'chat'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            
+            // Show requested section
+            if (sectionId === 'chat' && currentUser) {
+                showChatSection();
+                updateChatUserInfo();
+            } else if (sectionId !== 'chat') {
+                document.getElementById(sectionId).style.display = 'flex';
+            }
+        }
+
+        // Update chat user info
+        function updateChatUserInfo() {
+            if (currentUser) {
+                document.getElementById('chat-user-avatar').src = currentUser.picture;
+                document.getElementById('chat-user-name').textContent = currentUser.name;
+                document.getElementById('chat-user-email').textContent = currentUser.email;
+                
+                const roleBadge = document.getElementById('chat-user-role');
+                if (isAdmin) {
+                    roleBadge.textContent = 'Administrator';
+                    roleBadge.style.background = '#ff6b35';
+                } else {
+                    roleBadge.textContent = 'User';
+                    roleBadge.style.background = '#00d4ff';
+                }
+            }
+        }
+
+        // Send chat message
+        function sendMainMessage() {
+            const messageInput = document.getElementById('main-message-input');
+            const message = messageInput.value.trim();
+            
+            if (message && currentUser) {
+                addChatMessage(message, true);
+                messageInput.value = '';
+                
+                // Simulate response (in real app, this would be WebSocket or API call)
+                setTimeout(() => {
+                    simulateResponse(message);
+                }, 1000 + Math.random() * 2000);
+            }
+        }
+
+        // Add message to chat
+        function addChatMessage(message, isUser = false, sender = null) {
+            const messagesContainer = document.getElementById('chat-messages-main');
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-message', isUser ? 'user-message' : 'other-message');
+            
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.innerHTML = `
+                <img class="message-avatar" src="${isUser ? currentUser.picture : 'https://via.placeholder.com/40x40?text=S'}" alt="${isUser ? 'You' : 'Support'}">
+                <div class="message-content">
+                    <div class="message-sender">${isUser ? 'You' : (sender || 'Support')}</div>
+                    <div>${message}</div>
+                    <div class="message-time">${timeStr}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            chatMessages.push({ message, isUser, sender, timestamp: now });
+        }
+
+        // Simulate chat responses (remove mock data)
+        function simulateResponse(userMessage) {
+            const responses = [
+                "Thank you for your message. Our team will assist you with energy trading inquiries.",
+                "I can help you with information about our blockchain energy platform.",
+                "For specific trading questions, our specialists are here to help.",
+                "Our platform ensures secure and transparent energy transactions."
+            ];
+            
+            const response = responses[Math.floor(Math.random() * responses.length)];
+            addChatMessage(response, false, 'Energy Support');
+        }
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 100) {
+                navbar.style.background = 'rgba(0, 47, 108, 0.98)';
+                navbar.style.backdropFilter = 'blur(15px)';
+            } else {
+                navbar.style.background = 'rgba(0, 47, 108, 0.95)';
+                navbar.style.backdropFilter = 'blur(10px)';
+            }
+        });
+
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe elements for animation
+        document.addEventListener('DOMContentLoaded', () => {
+            const animatedElements = document.querySelectorAll('.feature-item, .service-card, .intro-text');
+            animatedElements.forEach(el => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(30px)';
+                el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>
+    </script>
+</body>
+</html>
